@@ -16,25 +16,42 @@ class NewsViewModel(
     val breakingNews: MutableLiveData<Resource<NewsResponse>> = MutableLiveData()
     val breakingNewsPage = 1
 
+    val searchNews: MutableLiveData<Resource<NewsResponse>> = MutableLiveData()
+    val searchNewsPage = 1
+
     init {
         getBreakingNews("br")
     }
 
-    //inicia requisicao
     fun getBreakingNews(countryCode: String)  = viewModelScope.launch {
-
         breakingNews.postValue(Resource.Loading())
+
+        //inicia requisicao
         val response = newsRepository.getBreakingNews(countryCode, breakingNewsPage)
 
-        //após receber uma resposta breakingNews ira receber caso seja Sucesso ou Erro
+        //atribui a resposta da api ao meu liveData
         breakingNews.postValue(handleBreakingNewsResponse(response))
     }
 
-    //retorna sucesso ou erro da requisição
+    fun searchNews(searchQuery: String) = viewModelScope.launch {
+        searchNews.postValue(Resource.Loading())
+
+        val response = newsRepository.searchNews(searchQuery, searchNewsPage)
+        searchNews.postValue(handleSearchNewsResponse(response))
+    }
+
     private fun handleBreakingNewsResponse(response: Response<NewsResponse>) : Resource<NewsResponse> {
         if (response.isSuccessful) {
             response.body()?.let { resultResponse ->
-                //caso não seja nulo envio o resultado para o Resource
+                return Resource.Success(resultResponse)
+            }
+        }
+        return Resource.Error(response.message())
+    }
+
+    private fun handleSearchNewsResponse(response: Response<NewsResponse>) : Resource<NewsResponse> {
+        if (response.isSuccessful) {
+            response.body()?.let { resultResponse ->
                 return Resource.Success(resultResponse)
             }
         }
