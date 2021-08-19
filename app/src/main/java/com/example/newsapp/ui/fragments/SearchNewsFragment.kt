@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.AbsListView
+import android.widget.Toast
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
@@ -47,27 +48,7 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
                     bundle
             )
         }
-
-        /*
-        *sempre que for digitado algo (editable), eu irei adicionar
-        * um delay de 0.5s para fazer a requisição. Isso evita de fazer
-        * uma requisição para cada letra digitada.
-         */
-        var job: Job? = null
-        etSearch.addTextChangedListener { editable ->
-            //caso sejá digitado algo eu cancelo o job atual (zera o tempo)
-            job?.cancel()
-
-            job = MainScope().launch {
-                delay(SEARCH_NEWS_TIME_DELAY)
-                editable?.let {
-                    //cai dentro do let caso nao seja nulo
-                    if(editable.toString().isNotEmpty()) {
-                        viewModel.searchNews(editable.toString())
-                    }
-                }
-            }
-        }
+        initRequestSearchNews()
 
         viewModel.searchNews.observe(viewLifecycleOwner, Observer { response ->
             when(response) {
@@ -86,6 +67,7 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
                     hideProgressBar()
                     response.message?.let { message ->
                         Log.e(TAG, "An error occured: $message")
+                        Toast.makeText(activity, "An error occured: $message", Toast.LENGTH_SHORT).show()
                     }
                 }
                 is Resource.Loading -> {
@@ -93,6 +75,36 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
                 }
             }
         })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if(viewModel.breakingNewsResponse == null) {
+            initRequestSearchNews()
+        }
+    }
+
+    private fun initRequestSearchNews() {
+        /*
+        *sempre que for digitado algo (editable), eu irei adicionar
+        * um delay de 0.5s para fazer a requisição. Isso evita de fazer
+        * uma requisição para cada letra digitada.
+         */
+        var job: Job? = null
+        etSearch.addTextChangedListener { editable ->
+            //caso sejá digitado algo eu cancelo o job atual (zera o tempo)
+            job?.cancel()
+
+            job = MainScope().launch {
+                delay(SEARCH_NEWS_TIME_DELAY)
+                editable?.let {
+                    //cai dentro do let caso nao seja nulo
+                    if (editable.toString().isNotEmpty()) {
+                        viewModel.searchNews(editable.toString())
+                    }
+                }
+            }
+        }
     }
 
     private fun setupRecyclerView() {
